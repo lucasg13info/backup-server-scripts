@@ -34,10 +34,10 @@ FOLDERS_TO_BACKUP=("/etc" "/srv" "/var/www" "/home")
 PACKAGES_FILE="$BACKUP_DIR/packages.list"
 
 # ------------------------------
-# GOOGLE DRIVE
+# GOOGLE DRIVE (SEM CRIPTOGRAFIA)
 # ------------------------------
-GDRIVE_REMOTE="gdrive-crypt"
-GDRIVE_FOLDER="server-backups"
+GDRIVE_REMOTE="gdrive"
+GDRIVE_FOLDER="backupServerCloud"
 
 # ------------------------------
 # RETENTION
@@ -172,25 +172,32 @@ tar -czf "$BACKUP_FILE" \
 || send_error "Failed to create backup archive."
 
 # ------------------------------
-# 4️⃣ UPLOAD TO GOOGLE DRIVE
+# 4️⃣ ENSURE GOOGLE DRIVE FOLDER EXISTS
 # ------------------------------
-echo "[INFO] Uploading backup to Google Drive (encrypted)..."
+echo "[INFO] Ensuring Google Drive folder exists..."
+rclone mkdir "$GDRIVE_REMOTE:$GDRIVE_FOLDER" \
+|| send_error "Failed to create/check Google Drive folder."
+
+# ------------------------------
+# 5️⃣ UPLOAD TO GOOGLE DRIVE (SEM CRIPTO)
+# ------------------------------
+echo "[INFO] Uploading backup to Google Drive..."
 rclone copy "$BACKUP_FILE" "$GDRIVE_REMOTE:$GDRIVE_FOLDER" --progress \
 || send_error "Failed to upload backup to Google Drive."
 
 # ------------------------------
-# 5️⃣ REMOTE RETENTION POLICY
+# 6️⃣ REMOTE RETENTION POLICY
 # ------------------------------
 echo "[INFO] Applying retention policy on Google Drive..."
 rclone delete "$GDRIVE_REMOTE:$GDRIVE_FOLDER" --min-age "${RETENTION_DAYS}d"
 
 # ------------------------------
-# 6️⃣ LOCAL CLEANUP
+# 7️⃣ LOCAL CLEANUP
 # ------------------------------
 echo "[INFO] Cleaning up local backups older than $RETENTION_DAYS days..."
 find "$BACKUP_DIR" -type f -mtime +$RETENTION_DAYS -delete
 
 # ------------------------------
-# 7️⃣ SUCCESS EMAIL
+# 8️⃣ SUCCESS EMAIL
 # ------------------------------
 send_success
